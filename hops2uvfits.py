@@ -28,8 +28,11 @@ import numpy.matlib
 
 # For Andrew:
 #DATADIR_DEFAULT = '/home/achael/EHT/hops/data/3554/' #/098-0924/'
-DATADIR_DEFAULT = '/Users/klbouman/Research/vlbi_imaging/software/hops/er1-hops-hi/5.+close/data/3601' 
-OUTDIR_DEFAULT = '/Users/klbouman/Research/vlbi_imaging/software/hops/tmpout2'
+#DATADIR_DEFAULT = '/Users/klbouman/Research/vlbi_imaging/software/hops/er1-hops-hi/5.+close/data/3601' 
+#OUTDIR_DEFAULT = '/Users/klbouman/Research/vlbi_imaging/software/hops/tmpout2'
+
+DATADIR_DEFAULT = '/media/barrettj/data/eht/3599'
+OUTDIR_DEFAULT = '/media/barrettj/data/eht/3599'
 
 
 # For Katie
