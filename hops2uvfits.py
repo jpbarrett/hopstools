@@ -733,6 +733,53 @@ def load_and_convert_hops_uvfits(filename):
     #TODO get flags from uvfits?
     return datastruct_out
 
+
+def contruct_bl_list(datatable_merge, tkeys):
+
+    bl_list = []
+    bl_dict = dict()
+    bl_set = set()
+    unique_time_index = []
+    inverse_index = []
+    for i in xrange(len(datatable_merge)):
+        entry = datatable_merge[i]
+        t1num = entry['t1']
+        t2num = entry['t2']
+        if i< 10:
+            print "ALT entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+        if tkeys[entry['t1']] > tkeys[entry['t2']]: # reorder telescopes if necessary
+            #print entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+            entry['t1'] = t2num
+            entry['t2'] = t1num
+            entry['u'] = -entry['u']
+            entry['v'] = -entry['v']
+            entry['rr'] = np.conj(entry['rr'])
+            entry['ll'] = np.conj(entry['ll'])
+            entry['rl'] = np.conj(entry['rl'])
+            entry['lr'] = np.conj(entry['lr'])
+            datatable_merge[i] = entry
+        bl_size = len(bl_set)
+        tmp_entry = (entry['time'],entry['t1'],entry['t2'])
+        bl_set.add( tmp_entry )
+        if bl_size < len(bl_set): #added a unique entry to the set, so expand our lists
+            unique_time_index.append(i)
+            bl_list.append( tmp_entry )
+            bl_dict[ tmp_entry ] = len(bl_list) - 1
+        inverse_index.append( bl_dict[tmp_entry] )
+
+    #re-jigger indices to match what numpy.unique is doing
+    inverse_index_remapped = []
+    bl_list_sorted = sorted(bl_list)
+    bl_dict_sorted = dict()
+    for n in range(0,len(bl_list_sorted)):
+        bl_dict_sorted[ bl_list_sorted[n] ] = n
+
+    for n in range(0,len(inverse_index)):
+        inverse_index_remapped.append( bl_dict_sorted[ bl_list[ inverse_index[n] ] ] )
+
+    return bl_list_sorted, unique_time_index, inverse_index_remapped
+
+
 def merge_hops_uvfits(fitsFiles):
     """load and merge all uvfits files in a data directory
        Args:
@@ -879,6 +926,8 @@ def merge_hops_uvfits(fitsFiles):
         entry = datatable_merge[i]
         t1num = entry['t1']
         t2num = entry['t2']
+        if i < 10:
+            print "entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
         if tkeys[entry['t1']] > tkeys[entry['t2']]: # reorder telescopes if necessary
             #print entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
             entry['t1'] = t2num
@@ -893,7 +942,47 @@ def merge_hops_uvfits(fitsFiles):
         bl_list.append(np.array((entry['time'],entry['t1'],entry['t2']),dtype=BLTYPE))
 
     # get unique time and baseline data
-    _, unique_idx_anttime, idx_anttime = np.unique(bl_list, return_index=True, return_inverse=True)
+    ab, unique_idx_anttime, idx_anttime = np.unique(bl_list, return_index=True, return_inverse=True)
+    ab2, unique_idx_anttimeB, idx_anttimeB = contruct_bl_list(datatable_merge, tkeys)
+
+    print "compare unique_anttime"
+    mismatch_count = 0
+    for n in range(0,20):
+        print ab[n], " and", ab2[n]
+
+
+
+    print len(unique_idx_anttime)
+    print len(unique_idx_anttimeB)
+    print len(idx_anttime)
+    print len(idx_anttimeB)
+
+
+    print "compare unique_idx_anttime"
+    mismatch_count = 0
+    for n in range(0, min(len(unique_idx_anttime), len(unique_idx_anttimeB) ) ):
+        if unique_idx_anttime[n] != unique_idx_anttimeB[n]:
+            mismatch_count +=1
+    print "n uniq_idx mis-matched = ", mismatch_count
+    print "set diff = ", set( set(unique_idx_anttime) - set(unique_idx_anttimeB) )
+    print unique_idx_anttime[:30]
+    print unique_idx_anttimeB[:30]
+    print unique_idx_anttime[-30:]
+    print unique_idx_anttimeB[-30:]
+
+    print "compare idx_anttime"
+    mismatch_count = 0
+    for n in range(0, min(len(idx_anttime), len(idx_anttimeB) ) ):
+        if idx_anttime[n] != idx_anttimeB[n]:
+            mismatch_count +=1
+    print "n idx mis-matched = ", mismatch_count
+    print "set diff = ", set( set(unique_idx_anttime) - set(unique_idx_anttimeB) )
+    print idx_anttime[:30]
+    print idx_anttimeB[:30]
+    print idx_anttime[-30:]
+    print idx_anttimeB[-30:]
+
+
     _, unique_idx_freq, idx_freq = np.unique(datatable_merge['freq'], return_index=True, return_inverse=True)
     nap = len(unique_idx_anttime)
 
