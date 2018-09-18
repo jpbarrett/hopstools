@@ -733,7 +733,7 @@ def load_and_convert_hops_uvfits(filename):
     #TODO get flags from uvfits?
     return datastruct_out
 
-
+@profile
 def contruct_bl_list(datatable_merge, tkeys):
     """ Construct a list of unique time-baseline entries from the merged data table
         without explictly loading all of them into memory and sorting them first.
@@ -794,7 +794,7 @@ def contruct_bl_list(datatable_merge, tkeys):
     return unique_entries_sorted, unique_entry_indexes, inverse_indexes
 
 
-
+@profile
 def merge_hops_uvfits(fitsFiles):
     """load and merge all uvfits files in a data directory
        Args:
