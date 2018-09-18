@@ -736,19 +736,17 @@ def load_and_convert_hops_uvfits(filename):
 
 def contruct_bl_list(datatable_merge, tkeys):
 
-    bl_list = []
-    bl_dict = dict()
+
+    bl_dict_table = dict()
     bl_set = set()
-    unique_time_index = []
-    inverse_index = []
     for i in xrange(len(datatable_merge)):
         entry = datatable_merge[i]
         t1num = entry['t1']
         t2num = entry['t2']
-        if i< 10:
-            print "ALT entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+        # if i< 10:
+        #     print "ALT entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
         if tkeys[entry['t1']] > tkeys[entry['t2']]: # reorder telescopes if necessary
-            #print entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+            print entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
             entry['t1'] = t2num
             entry['t2'] = t1num
             entry['u'] = -entry['u']
@@ -762,22 +760,84 @@ def contruct_bl_list(datatable_merge, tkeys):
         tmp_entry = (entry['time'],entry['t1'],entry['t2'])
         bl_set.add( tmp_entry )
         if bl_size < len(bl_set): #added a unique entry to the set, so expand our lists
-            unique_time_index.append(i)
-            bl_list.append( tmp_entry )
-            bl_dict[ tmp_entry ] = len(bl_list) - 1
-        inverse_index.append( bl_dict[tmp_entry] )
+            bl_dict_table[ tmp_entry ] = i
 
-    #re-jigger indices to match what numpy.unique is doing
-    inverse_index_remapped = []
-    bl_list_sorted = sorted(bl_list)
-    bl_dict_sorted = dict()
-    for n in range(0,len(bl_list_sorted)):
-        bl_dict_sorted[ bl_list_sorted[n] ] = n
+    print str(len(bl_set)), "  --  ", str(len(bl_dict_table))
 
-    for n in range(0,len(inverse_index)):
-        inverse_index_remapped.append( bl_dict_sorted[ bl_list[ inverse_index[n] ] ] )
+    #now sort the dictionary we have constructed by the key entries (time, t1, and t2)
+    #and retrieve the sorted unique list of entries
+    unique_entries_sorted = sorted( bl_dict_table.keys() )
 
-    return bl_list_sorted, unique_time_index, inverse_index_remapped
+    print str(len(unique_entries_sorted))
+
+    #now create the table of indexes with the proper order
+    unique_entry_indexes = []
+    for entry in unique_entries_sorted:
+        index = bl_dict_table[entry]
+        unique_entry_indexes.append(index)
+
+    #now create a look up table into the unique set list
+    bl_dict_table2 = dict()
+    for n in range(0, len(unique_entries_sorted) ):
+        bl_dict_table2[ unique_entries_sorted[n] ] = n
+
+    #now we need to go through and construct the inverse indexes
+    inverse_indexes = []
+    for i in xrange(len(datatable_merge)):
+        entry = datatable_merge[i]
+        tmp_entry = (entry['time'],entry['t1'],entry['t2'])
+        if tmp_entry in bl_dict_table2:
+            inverse_indexes.append( bl_dict_table2[tmp_entry] )
+        # else:
+        #     print "missing!: ",  entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+
+    return unique_entries_sorted, unique_entry_indexes, inverse_indexes
+
+
+
+    # bl_list = []
+    #
+    # bl_dict = dict()
+    # bl_set = set()
+    # unique_time_index = []
+    # inverse_index = []
+    # for i in xrange(len(datatable_merge)):
+    #     entry = datatable_merge[i]
+    #     t1num = entry['t1']
+    #     t2num = entry['t2']
+    #     # if i< 10:
+    #     #     print "ALT entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+    #     if tkeys[entry['t1']] > tkeys[entry['t2']]: # reorder telescopes if necessary
+    #         #print entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+    #         entry['t1'] = t2num
+    #         entry['t2'] = t1num
+    #         entry['u'] = -entry['u']
+    #         entry['v'] = -entry['v']
+    #         entry['rr'] = np.conj(entry['rr'])
+    #         entry['ll'] = np.conj(entry['ll'])
+    #         entry['rl'] = np.conj(entry['rl'])
+    #         entry['lr'] = np.conj(entry['lr'])
+    #         datatable_merge[i] = entry
+    #     bl_size = len(bl_set)
+    #     tmp_entry = (entry['time'],entry['t1'],entry['t2'])
+    #     bl_set.add( tmp_entry )
+    #     if bl_size < len(bl_set): #added a unique entry to the set, so expand our lists
+    #         unique_time_index.append(i)
+    #         bl_list.append( tmp_entry )
+    #         bl_dict[ tmp_entry ] = len(bl_list) - 1
+    #     inverse_index.append( bl_dict[tmp_entry] )
+    #
+    # #re-jigger indices to match what numpy.unique is doing
+    # inverse_index_remapped = []
+    # bl_list_sorted = sorted(bl_list)
+    # bl_dict_sorted = dict()
+    # for n in range(0,len(bl_list_sorted)):
+    #     bl_dict_sorted[ bl_list_sorted[n] ] = n
+    #
+    # for n in range(0,len(inverse_index)):
+    #     inverse_index_remapped.append( bl_dict_sorted[ bl_list[ inverse_index[n] ] ] )
+    #
+    # return bl_list_sorted, unique_time_index, inverse_index_remapped
 
 
 def merge_hops_uvfits(fitsFiles):
@@ -926,8 +986,8 @@ def merge_hops_uvfits(fitsFiles):
         entry = datatable_merge[i]
         t1num = entry['t1']
         t2num = entry['t2']
-        if i < 10:
-            print "entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
+        # if i < 10:
+        #     print "entry@ ", i, entry['time'], entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
         if tkeys[entry['t1']] > tkeys[entry['t2']]: # reorder telescopes if necessary
             #print entry['t1'], tkeys[entry['t1']], entry['t2'], tkeys[entry['t2']]
             entry['t1'] = t2num
@@ -941,15 +1001,19 @@ def merge_hops_uvfits(fitsFiles):
             datatable_merge[i] = entry
         bl_list.append(np.array((entry['time'],entry['t1'],entry['t2']),dtype=BLTYPE))
 
-    # get unique time and baseline data
-    ab, unique_idx_anttime, idx_anttime = np.unique(bl_list, return_index=True, return_inverse=True)
-    ab2, unique_idx_anttimeB, idx_anttimeB = contruct_bl_list(datatable_merge, tkeys)
+    #get unique time and baseline data
+    abB, unique_idx_anttimeB, idx_anttimeB = np.unique(bl_list, return_index=True, return_inverse=True)
+    #construct our own list first, because np.unique might modify datatable_merge
+    ab, unique_idx_anttime, idx_anttime = contruct_bl_list(datatable_merge, tkeys)
 
-    print "compare unique_anttime"
+    # ab2, unique_idx_anttime, idx_anttime = contruct_bl_list(datatable_merge, tkeys)
+
+    print "compare unique_anttime lookup"
     mismatch_count = 0
-    for n in range(0,20):
-        print ab[n], " and", ab2[n]
-
+    for n in range(0,35):
+        entry1 = datatable_merge[ unique_idx_anttime[n] ]
+        entry2 = datatable_merge[ unique_idx_anttimeB[n] ]
+        print entry1['time'], entry1['t1'], entry1['t2'], " and", entry2['time'], entry2['t1'], entry2['t2']
 
 
     print len(unique_idx_anttime)
@@ -965,10 +1029,10 @@ def merge_hops_uvfits(fitsFiles):
             mismatch_count +=1
     print "n uniq_idx mis-matched = ", mismatch_count
     print "set diff = ", set( set(unique_idx_anttime) - set(unique_idx_anttimeB) )
-    print unique_idx_anttime[:30]
-    print unique_idx_anttimeB[:30]
-    print unique_idx_anttime[-30:]
-    print unique_idx_anttimeB[-30:]
+    print unique_idx_anttime[:35]
+    print unique_idx_anttimeB[:35]
+    print unique_idx_anttime[-35:]
+    print unique_idx_anttimeB[-35:]
 
     print "compare idx_anttime"
     mismatch_count = 0
@@ -977,10 +1041,10 @@ def merge_hops_uvfits(fitsFiles):
             mismatch_count +=1
     print "n idx mis-matched = ", mismatch_count
     print "set diff = ", set( set(unique_idx_anttime) - set(unique_idx_anttimeB) )
-    print idx_anttime[:30]
-    print idx_anttimeB[:30]
-    print idx_anttime[-30:]
-    print idx_anttimeB[-30:]
+    print idx_anttime[:35]
+    print idx_anttimeB[:35]
+    print idx_anttime[-35:]
+    print idx_anttimeB[-35:]
 
 
     _, unique_idx_freq, idx_freq = np.unique(datatable_merge['freq'], return_index=True, return_inverse=True)
